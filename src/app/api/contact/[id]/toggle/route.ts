@@ -6,9 +6,9 @@ const prisma = new PrismaClient();
 
 export async function PATCH(
   req: NextRequest,
-  contextPromise: Promise<{ params: { id: string } }>
+  context: { params: { id: string } }
 ) {
-  const { params } = await contextPromise;
+  const { params } = context;
   const user = getUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
