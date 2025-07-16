@@ -13,16 +13,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id       Int      @id @default(autoincrement())
+  name     String
+  email    String   @unique
+  password String
+  contacts Contact[]
+  messageConfigs MessageConfig[]
+}
+
 model Contact {
   id         Int      @id @default(autoincrement())
   name       String
   phone      String
   birthday   DateTime
   enabled    Boolean  @default(true)
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model MessageConfig {
   id        Int      @id @default(autoincrement())
   text      String
   sendTime  String   // Exemplo: "10:00"
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
 }

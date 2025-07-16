@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import * as XLSX from 'xlsx';
 import csv from 'csv-parser';
 import { Readable } from 'stream';
+import { getUserFromRequest } from '@/utils/auth';
 
 const prisma = new PrismaClient();
 
@@ -72,6 +73,10 @@ async function parseExcel(file: File): Promise<any[]> {
 }
 
 export async function POST(req: NextRequest) {
+  const user = getUserFromRequest(req);
+  if (!user) {
+    return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
+  }
   try {
     // Recebe o arquivo da requisição (espera multipart/form-data)
     const formData = await req.formData();
@@ -106,6 +111,7 @@ export async function POST(req: NextRequest) {
         phone: String(row['telefone'] || row['phone']),
         birthday: parsedDate,
         enabled: true,
+        userId: user.id,
       };
     });
 

@@ -12,9 +12,10 @@
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.12.0",
     "axios": "^1.10.0",
+    "bcryptjs": "^3.0.2",
     "csv-parser": "^3.2.0",
-    "next": "15.4.1",
-    "prisma": "^6.12.0",
+    "jsonwebtoken": "^9.0.2",
+    "next": "^15.4.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "xlsx": "^0.18.5"
@@ -22,12 +23,14 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.0.14",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.1",
+    "prisma": "^6.12.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5.8.3"
   }
 }
