@@ -4,12 +4,15 @@ import { getUserFromRequest } from '@/utils/auth';
 
 const prisma = new PrismaClient();
 
-export async function PATCH(req: NextRequest, context: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  contextPromise: Promise<{ params: { id: string } }>
+) {
+  const { params } = await contextPromise;
   const user = getUserFromRequest(req);
   if (!user) {
     return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
   }
-  const { params } = context;
   try {
     const id = Number(params.id);
     if (isNaN(id)) {

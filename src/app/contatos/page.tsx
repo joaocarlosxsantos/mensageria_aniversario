@@ -28,6 +28,8 @@ export default function ContatosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast, showToast } = useToast();
   const { user } = useAuth();
+  const [deleteId, setDeleteId] = useState<number|null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Carregar contatos somente se autenticado
   useEffect(() => {
@@ -69,8 +71,49 @@ export default function ContatosPage() {
     }
   }
 
+  async function handleDelete(id: number) {
+    setDeleteId(id);
+    setConfirmOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (!deleteId) return;
+    try {
+      await fetch("/api/contacts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: deleteId }),
+      });
+      setDeleteId(null);
+      setConfirmOpen(false);
+      fetchContacts();
+      showToast("success", "Contato deletado com sucesso!");
+    } catch (error) {
+      showToast("error", "Erro ao deletar contato.");
+    }
+  }
+
   return (
     <AuthGuard>
+      {/* Popup de confirmação de deleção */}
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg p-8 max-w-sm w-full border border-red-200 flex flex-col items-center">
+            <div className="text-red-600 text-2xl mb-2 font-bold">Excluir contato?</div>
+            <div className="text-gray-700 text-center mb-6">Essa ação <b>não pode ser desfeita</b>.<br/>Tem certeza que deseja excluir este contato?</div>
+            <div className="flex gap-4 w-full mt-2">
+              <button
+                onClick={() => setConfirmOpen(false)}
+                className="flex-1 py-2 rounded-lg border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors cursor-pointer"
+              >Cancelar</button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-2 rounded-lg border border-red-300 bg-red-600 hover:bg-red-700 text-white font-bold transition-colors cursor-pointer"
+              >Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex min-h-screen">
         <Navigation />
         <main className="flex-1 md:ml-0 pt-16 md:pt-8 px-4 md:px-12 pb-8">
@@ -198,12 +241,18 @@ export default function ContatosPage() {
                                 </span>
                               )}
                             </td>
-                            <td className="border-b p-2 md:p-3 text-center">
+                            <td className="border-b p-2 md:p-3 text-center flex gap-2 justify-center">
                               <button
                                 onClick={() => handleToggle(c.id)}
-                                className={`px-3 py-1 rounded-lg font-semibold shadow text-xs transition-colors border ${c.enabled ? 'bg-red-100 text-red-700 border-red-200 hover:bg-red-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'} cursor-pointer`}
+                                className={`px-3 py-1 rounded-lg font-semibold shadow text-xs transition-colors border ${c.enabled ? 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'} cursor-pointer`}
                               >
                                 {c.enabled ? 'Desativar' : 'Ativar'}
+                              </button>
+                              <button
+                                onClick={() => handleDelete(c.id)}
+                                className="px-3 py-1 rounded-lg font-semibold shadow text-xs transition-colors border bg-red-100 text-red-700 border-red-200 hover:bg-red-200 cursor-pointer"
+                              >
+                                Excluir
                               </button>
                             </td>
                           </tr>

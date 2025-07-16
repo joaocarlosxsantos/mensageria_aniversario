@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { CakeIcon, UserIcon } from "@heroicons/react/24/outline";
+import { PaperAirplaneIcon } from "@heroicons/react/24/solid";
 import Navigation from "@/components/Navigation";
 import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
@@ -25,6 +26,7 @@ function formatDate(dateString: string) {
 export default function Home() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [todayBirthdays, setTodayBirthdays] = useState<any[]>([]);
+  const [sent, setSent] = useState<{ [id: number]: boolean }>({});
   const { toast, showToast } = useToast();
   const { user, loading } = useAuth();
 
@@ -56,6 +58,26 @@ export default function Home() {
     } catch (error) {
       showToast("error", "Erro ao carregar contatos.");
     }
+  }
+
+  // Função para gerar link do WhatsApp
+  function getWhatsappLink(phone: string, name: string) {
+    // Busca mensagem padrão do contato
+    const config = localStorage.getItem('messageConfig');
+    let message = "Feliz aniversário, {nome}!";
+    if (config) {
+      try {
+        const parsed = JSON.parse(config);
+        if (parsed.text) message = parsed.text;
+      } catch {}
+    }
+    message = message.replace("{nome}", name);
+    // Formata telefone para formato internacional (ex: 55 + DDD + número)
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 11 && !cleaned.startsWith('55')) {
+      cleaned = '55' + cleaned;
+    }
+    return `https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`;
   }
 
   return (
@@ -141,6 +163,23 @@ export default function Home() {
                       <div className="mt-3 md:mt-4 text-center">
                         <div className="text-pink-600 font-bold text-base md:text-lg">🎉 Feliz Aniversário!</div>
                       </div>
+                      <a
+                        href={getWhatsappLink(c.phone, c.name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setSent((prev) => ({ ...prev, [c.id]: true }))}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold shadow transition-colors text-base border cursor-pointer
+                          ${sent[c.id]
+                            ? 'bg-gray-200 text-gray-500 border-gray-300 hover:bg-gray-300'
+                            : 'bg-green-500 text-white border-green-600 hover:bg-green-600'}
+                        `}
+                        title="Enviar mensagem pelo WhatsApp"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="h-5 w-5">
+                          <path d="M20.52 3.48A12.07 12.07 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.16 1.6 5.97L0 24l6.22-1.63A12.13 12.13 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.21-1.25-6.23-3.48-8.52zM12 22c-1.85 0-3.67-.5-5.24-1.44l-.37-.22-3.69.97.99-3.59-.24-.37A9.94 9.94 0 0 1 2 12C2 6.48 6.48 2 12 2c2.4 0 4.68.84 6.5 2.36A9.93 9.93 0 0 1 22 12c0 5.52-4.48 10-10 10zm5.2-7.6c-.28-.14-1.65-.81-1.9-.9-.25-.09-.43-.14-.61.14-.18.28-.7.9-.86 1.08-.16.18-.32.2-.6.07-.28-.14-1.18-.44-2.25-1.4-.83-.74-1.39-1.65-1.55-1.93-.16-.28-.02-.43.12-.57.13-.13.28-.34.42-.51.14-.17.18-.29.28-.48.09-.19.05-.36-.02-.5-.07-.14-.61-1.47-.84-2.01-.22-.53-.45-.46-.62-.47-.16-.01-.36-.01-.56-.01-.19 0-.5.07-.76.34-.26.26-1 1-.98 2.43.02 1.43 1.03 2.81 1.18 3 .15.19 2.03 3.1 4.93 4.23.69.3 1.23.48 1.65.62.69.22 1.32.19 1.81.12.55-.08 1.65-.67 1.88-1.32.23-.65.23-1.2.16-1.32-.07-.12-.25-.19-.53-.33z" />
+                        </svg>
+                        {sent[c.id] ? 'Enviado' : 'WhatsApp'}
+                      </a>
                     </div>
                   ))}
                 </div>

@@ -105,20 +105,39 @@ export async function POST(req: NextRequest) {
     const contatos = json.map((row) => {
       const rawDate = row['data de nascimento'] || row['birthday'];
       const parsedDate = parseLocalDate(rawDate);
-      
       return {
         name: row['nome'] || row['name'],
         phone: String(row['telefone'] || row['phone']),
         birthday: parsedDate,
-        enabled: true,
         userId: user.id,
       };
     });
 
-    // Salva todos os contatos no banco
-    await prisma.contact.createMany({ data: contatos });
+    let count = 0;
+    for (const contato of contatos) {
+      // Busca contato existente pelo telefone e userId
+      const existing = await prisma.contact.findFirst({
+        where: { phone: contato.phone, userId: user.id },
+      });
+      if (existing) {
+        await prisma.contact.update({
+          where: { id: existing.id },
+          data: {
+            name: contato.name,
+            birthday: contato.birthday,
+            // Mantém o enabled do registro antigo
+            // phone e userId não mudam
+          },
+        });
+      } else {
+        await prisma.contact.create({
+          data: { ...contato, enabled: true },
+        });
+      }
+      count++;
+    }
 
-    return NextResponse.json({ success: true, count: contatos.length });
+    return NextResponse.json({ success: true, count });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Erro ao processar a planilha.' }, { status: 500 });
