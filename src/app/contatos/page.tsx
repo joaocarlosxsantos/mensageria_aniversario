@@ -6,6 +6,7 @@ import Toast from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
 import AuthGuard from "@/components/AuthGuard";
+import Link from 'next/link';
 
 // Função para formatar telefone: (xx) xxxxx-xxxx
 function formatPhone(phone: string) {
@@ -22,6 +23,12 @@ function formatDate(dateString: string) {
   return date.toLocaleDateString('pt-BR');
 }
 
+function formatDateInputToBR(dateString: string) {
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+}
+
 export default function ContatosPage() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
@@ -30,6 +37,71 @@ export default function ContatosPage() {
   const { user } = useAuth();
   const [deleteId, setDeleteId] = useState<number|null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Estado do formulário
+  const [form, setForm] = useState({ id: null as number | null, name: '', phone: '', birthday: '' });
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  function resetForm() {
+    setForm({ id: null, name: '', phone: '', birthday: '' });
+    setIsEditing(false);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (!form.name || !form.phone || !form.birthday) {
+        showToast('error', 'Preencha todos os campos.');
+        setLoading(false);
+        return;
+      }
+      // Garante que a data enviada está no formato correto
+      const birthday = form.birthday;
+      const method = isEditing ? 'PUT' : 'POST';
+      const body = isEditing
+        ? { id: form.id, name: form.name, phone: form.phone, birthday }
+        : { name: form.name, phone: form.phone, birthday };
+      const res = await fetch('/api/contacts', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast('error', data.error || 'Erro ao salvar contato.');
+      } else {
+        showToast('success', isEditing ? 'Contato editado com sucesso!' : 'Contato adicionado com sucesso!');
+        fetchContacts();
+        resetForm();
+      }
+    } catch (error) {
+      showToast('error', 'Erro ao salvar contato.');
+    }
+    setLoading(false);
+  }
+
+  function handleEdit(contact: any) {
+    // Corrigir para garantir que a data seja exibida corretamente no input type=date
+    let date = '';
+    if (contact.birthday) {
+      const d = new Date(contact.birthday);
+      // Ajusta para o fuso local, pegando apenas a parte da data
+      date = d.toISOString().slice(0, 10);
+    }
+    setForm({
+      id: contact.id,
+      name: contact.name,
+      phone: contact.phone,
+      birthday: date,
+    });
+    setIsEditing(true);
+  }
 
   // Carregar contatos somente se autenticado
   useEffect(() => {
@@ -196,6 +268,60 @@ export default function ContatosPage() {
               </div>
             </section>
 
+            {/* Formulário de adicionar/editar contato */}
+            <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-4 md:p-6 border border-indigo-200 mb-6 flex flex-col gap-4 max-w-xl mx-auto">
+              <h2 className="font-bold text-lg md:text-xl text-gray-900 mb-2">{isEditing ? 'Editar Contato' : 'Adicionar Novo Contato'}</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Nome"
+                  value={form.name}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm md:text-base"
+                  required
+                />
+                <input
+                  type="text"
+                  name="phone"
+                  placeholder="Telefone (somente números)"
+                  value={form.phone}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm md:text-base"
+                  required
+                />
+                <div className="flex flex-col gap-1">
+                  {isEditing && form.birthday && (
+                    <span className="text-xs text-gray-600">Data atual: <b>{formatDateInputToBR(form.birthday)}</b></span>
+                  )}
+                  <input
+                    type="date"
+                    name="birthday"
+                    placeholder="Data de Nascimento"
+                    value={form.birthday}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm md:text-base"
+                    required
+                  />
+                </div>
+              </div>
+              {/* Atalho para importar contatos */}
+              <div className="flex justify-end mt-2">
+                <Link href="/importar" className="text-indigo-600 hover:underline text-sm font-medium flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  Importar contatos em lote
+                </Link>
+              </div>
+              <div className="flex gap-2 justify-end">
+                {isEditing && (
+                  <button type="button" onClick={resetForm} className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors">Cancelar</button>
+                )}
+                <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg border border-indigo-300 bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-colors disabled:opacity-60">
+                  {loading ? (isEditing ? 'Salvando...' : 'Adicionando...') : (isEditing ? 'Salvar Alterações' : 'Adicionar')}
+                </button>
+              </div>
+            </form>
+
             {/* Listagem de Contatos */}
             <section>
               <div className="bg-white rounded-xl shadow border border-indigo-100">
@@ -247,6 +373,12 @@ export default function ContatosPage() {
                                 className={`px-3 py-1 rounded-lg font-semibold shadow text-xs transition-colors border ${c.enabled ? 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200' : 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'} cursor-pointer`}
                               >
                                 {c.enabled ? 'Desativar' : 'Ativar'}
+                              </button>
+                              <button
+                                onClick={() => handleEdit(c)}
+                                className="px-3 py-1 rounded-lg font-semibold shadow text-xs transition-colors border bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200 cursor-pointer"
+                              >
+                                Editar
                               </button>
                               <button
                                 onClick={() => handleDelete(c.id)}

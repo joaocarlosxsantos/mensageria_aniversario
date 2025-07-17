@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { CakeIcon, ClipboardIcon, CheckCircleIcon, UserIcon, Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { CakeIcon, ClipboardIcon, CheckCircleIcon, UserIcon, Bars3Icon, XMarkIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "@/hooks/useAuth";
 
 function classNames(...classes: string[]) {
@@ -12,6 +12,7 @@ function classNames(...classes: string[]) {
 export default function Navigation() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [contatosOpen, setContatosOpen] = useState(false);
   const { user, loading, logout } = useAuth();
 
   if (loading) return null;
@@ -19,9 +20,18 @@ export default function Navigation() {
 
   const navigation = [
     { name: 'Início', href: '/', icon: CakeIcon },
-    { name: 'Importar Contatos', href: '/importar', icon: ClipboardIcon },
     { name: 'Mensagem Padrão', href: '/mensagem', icon: CheckCircleIcon },
-    { name: 'Contatos', href: '/contatos', icon: UserIcon },
+    // Remover Importar Contatos daqui
+    // { name: 'Importar Contatos', href: '/importar', icon: ClipboardIcon },
+    // Submenu de Contatos:
+    {
+      name: 'Contatos',
+      icon: UserIcon,
+      subItems: [
+        { name: 'Listar Contatos', href: '/contatos', icon: UserIcon },
+        { name: 'Importar Contatos', href: '/importar', icon: ClipboardIcon },
+      ],
+    },
   ];
 
   return (
@@ -59,24 +69,64 @@ export default function Navigation() {
           
           <nav className="flex flex-col gap-4 text-gray-700 flex-1">
             {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={classNames(
-                    "flex items-center gap-2 font-medium transition-colors rounded-lg px-3 py-2",
-                    isActive 
-                      ? "bg-indigo-100 text-indigo-700 border border-indigo-200" 
-                      : "hover:text-indigo-600 hover:bg-indigo-50"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="hidden sm:inline">{item.name}</span>
-                  <span className="sm:hidden">{item.name}</span>
-                </Link>
-              );
+              if (!item.subItems) {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={classNames(
+                      "flex items-center gap-2 font-medium transition-colors rounded-lg px-3 py-2",
+                      isActive 
+                        ? "bg-indigo-100 text-indigo-700 border border-indigo-200" 
+                        : "hover:text-indigo-600 hover:bg-indigo-50"
+                    )}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span className="hidden sm:inline">{item.name}</span>
+                    <span className="sm:hidden">{item.name}</span>
+                  </Link>
+                );
+              } else {
+                // Submenu de Contatos
+                const isActive = item.subItems.some(sub => pathname === sub.href);
+                return (
+                  <div key={item.name} className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => setContatosOpen((open) => !open)}
+                      className={classNames(
+                        "flex items-center gap-2 font-medium transition-colors rounded-lg px-3 py-2 w-full",
+                        isActive ? "bg-indigo-100 text-indigo-700 border border-indigo-200" : "hover:text-indigo-600 hover:bg-indigo-50"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span className="hidden sm:inline">{item.name}</span>
+                      <span className="sm:hidden">{item.name}</span>
+                      <ChevronDownIcon className={classNames("h-4 w-4 ml-auto transition-transform", contatosOpen ? "rotate-180" : "")}/>
+                    </button>
+                    {contatosOpen && (
+                      <div className="ml-6 flex flex-col gap-1 mt-1">
+                        {item.subItems.map((sub) => (
+                          <Link
+                            key={sub.name}
+                            href={sub.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={classNames(
+                              "flex items-center gap-2 font-medium transition-colors rounded-lg px-3 py-2",
+                              pathname === sub.href ? "bg-indigo-50 text-indigo-700 border border-indigo-100" : "hover:text-indigo-600 hover:bg-indigo-50"
+                            )}
+                          >
+                            <sub.icon className="h-4 w-4" />
+                            <span>{sub.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
             })}
           </nav>
           {/* Usuário logado e logout */}
